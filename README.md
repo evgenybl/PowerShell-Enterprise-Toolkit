@@ -2,7 +2,7 @@
 
 Production-grade PowerShell scripts for Microsoft 365, Active Directory, Entra ID, Exchange Online, and Group Policy administration.
 
-Built from 7+ years of hands-on enterprise IT work managing environments with 6,000+ users. Every script solves a real operational problem, handles errors properly, supports `-WhatIf` where relevant, and produces auditable output.
+Built from 7+ years of hands-on enterprise IT work. These scripts were created and refined while managing a hybrid environment with 2,000+ users and 1,000 servers as part of a 6-person IT team (3 full-time, 3 part-time). Every script solves a real operational problem I ran into on the job, handles errors properly, supports `-WhatIf` where relevant, and produces auditable output.
 
 ---
 
@@ -219,6 +219,12 @@ Exports all non-default mailbox delegations across Exchange Online. Covers Full 
 
 ---
 
+## Development
+
+Scripts are developed and enhanced using AI-assisted workflows (Claude, GitHub Copilot) for faster iteration, better error handling, and thorough documentation. All scripts are validated against real enterprise environments before publishing.
+
+---
+
 ## Notes
 
 - Scripts do not delete data. All destructive operations are reversible by an administrator.
@@ -230,5 +236,5 @@ Exports all non-default mailbox delegations across Exchange Online. Covers Full 
 ## Author
 
 **Evgeny Blekhman**
-Microsoft 365 & Azure Administrator | 7+ years enterprise IT
+Microsoft 365 & Azure Administrator | 7+ years enterprise IT | 2,000+ users, 1,000 servers
 [LinkedIn](https://www.linkedin.com/in/evgeny-blekhman) · [GitHub](https://github.com/evgenybl)
