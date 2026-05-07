@@ -2,7 +2,7 @@
 
 Production-grade PowerShell scripts for Microsoft 365, Active Directory, Entra ID, Exchange Online, and Group Policy administration.
 
-Built from 7+ years of hands-on enterprise IT work. These scripts were created and refined while managing a hybrid environment with 2,000+ users and 1,000 servers as part of a 6-person IT team (3 full-time, 3 part-time). Every script solves a real operational problem I ran into on the job, handles errors properly, supports `-WhatIf` where relevant, and produces auditable output.
+Built from 8 years of hands-on enterprise IT work. These scripts were created and refined while managing a hybrid environment with 2,000+ users and 1,000 servers as part of a 6-person IT team (3 full-time, 3 part-time). Every script solves a real operational problem I ran into on the job, handles errors properly, supports `-WhatIf` where relevant, and produces auditable output.
 
 ---
 
