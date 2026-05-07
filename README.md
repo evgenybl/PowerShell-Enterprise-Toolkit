@@ -236,5 +236,5 @@ Scripts are developed and enhanced using AI-assisted workflows (Claude, GitHub C
 ## Author
 
 **Evgeny Blekhman**
-Microsoft 365 & Azure Administrator | 7+ years enterprise IT | 2,000+ users, 1,000 servers
+Microsoft 365 & Azure Administrator | 8 years enterprise IT | 2,000+ users, 1,000 servers
 [LinkedIn](https://www.linkedin.com/in/evgeny-blekhman) · [GitHub](https://github.com/evgenybl)
