@@ -1,8 +1,10 @@
 # PowerShell Enterprise Toolkit
 
-Production-grade PowerShell scripts for Microsoft 365, Active Directory, Entra ID, Exchange Online, and Group Policy administration.
+PowerShell scripts for Microsoft 365, Active Directory, Entra ID, Exchange Online and Group Policy administration.
 
-Built from 8 years of hands-on enterprise IT work. These scripts were created and refined while managing a hybrid environment with 2,000+ users and 1,000 servers as part of a 6-person IT team (3 full-time, 3 part-time). Every script solves a real operational problem I ran into on the job, handles errors properly, supports `-WhatIf` where relevant, and produces auditable output.
+Written from my years as a System Administrator in a hybrid Microsoft environment of about 2,000 users and 1,000 servers, in a three-person systems team. Each script addresses an operational task of that kind of environment.
+
+**Status: reference code.** All ten scripts parse without errors. There are no automated tests in this repository, and the scripts have not been run against a live tenant from here. Read a script and try it in a lab before you use it. Four scripts that change something support `-WhatIf`: `Find-StaleAccounts`, `Invoke-EmployeeOffboarding`, `Send-PasswordExpiryNotification` and `Set-BulkUserOnboarding`.
 
 ---
 
@@ -28,11 +30,20 @@ Built from 8 years of hands-on enterprise IT work. These scripts were created an
 Most scripts require one or more of these modules:
 
 ```powershell
-Install-Module ActiveDirectory          # Built into Windows Server RSAT
 Install-Module ExchangeOnlineManagement
 Install-Module Microsoft.Graph
-Install-Module MSOnline                 # Legacy, some scripts only
 ```
+
+The `ActiveDirectory` module is not installed with `Install-Module`. It comes with the Remote Server Administration Tools (RSAT):
+
+```powershell
+# Windows Server
+Install-WindowsFeature -Name RSAT-AD-Tools -IncludeAllSubFeature
+# Windows 10 or 11
+Add-WindowsCapability -Online -Name Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0
+```
+
+The offboarding and onboarding scripts also call the `ADSync` module for their sync step. That step runs only on the Microsoft Entra Connect server; anywhere else it is skipped with a warning.
 
 Run as an account with appropriate administrative rights in AD and/or Microsoft 365.
 
@@ -66,7 +77,7 @@ Automates the complete offboarding workflow across AD and Microsoft 365.
 
 **What it does:**
 1. Disables the AD account
-2. Resets the password to a cryptographically random 40-character string
+2. Resets the password to a random 40-character string
 3. Removes the user from all security and distribution groups
 4. Clears manager, title, and department attributes
 5. Moves the account to the Disabled OU
@@ -158,7 +169,7 @@ $pricing = @{ 'SPE_E3' = 36; 'ENTERPRISEPACK' = 23 }
 
 ### Invoke-ConditionalAccessAudit
 
-Retrieves all Conditional Access policies and runs 8 security checks against each one. Produces a severity-rated findings report.
+Retrieves all Conditional Access policies, runs 8 checks against each one and one tenant-level check, and produces a severity-rated findings report.
 
 **Checks include:**
 - Policies in Report-Only mode
@@ -187,7 +198,7 @@ Inventories all Entra ID guest accounts and assigns a risk rating based on inact
 
 ### Set-BulkUserOnboarding
 
-Processes a CSV of new employees and provisions each account end-to-end: creates the AD account, adds to groups, triggers Azure AD sync, assigns M365 license, and sends a welcome email with temporary credentials.
+Processes a CSV of new employees and provisions each account end-to-end: creates the AD account, adds to groups, triggers Azure AD sync, assigns M365 license, and sends a welcome email with temporary credentials. The temporary password is written in that email in clear text; change the delivery if your policy does not allow it.
 
 ```powershell
 .\Set-BulkUserOnboarding.ps1 `
@@ -221,20 +232,25 @@ Exports all non-default mailbox delegations across Exchange Online. Covers Full 
 
 ## Development
 
-Scripts are developed and enhanced using AI-assisted workflows (Claude, GitHub Copilot) for faster iteration, better error handling, and thorough documentation. All scripts are validated against real enterprise environments before publishing.
+The scripts were written with AI-assisted workflows (Claude, GitHub Copilot). There are no automated tests in this repository.
 
 ---
 
 ## Notes
 
-- Scripts do not delete data. All destructive operations are reversible by an administrator.
+- The scripts delete no account and no mailbox. Some steps cannot be undone from the log alone: the offboarding script removes group memberships and clears the manager, title and department, and its log records how many groups were removed, not which. Export those values first if you may need to restore them.
 - Credentials are never hardcoded. Use `-Credential` parameters, `Connect-*` module authentication, or a secrets manager.
-- Tested against Exchange Online, Entra ID, and AD environments as of 2025–2026.
+
+## Known limitations
+
+- `Convert-RegistryToGPO`: a `REG_QWORD` value is written with one byte missing (the conversion loop stops before the first byte). Do not use it for QWORD values until this is fixed.
+- `Invoke-ConditionalAccessAudit`: the script's header names three checks that the code does not implement: device compliance for privileged roles, break-glass exclusions, and sign-in risk policies.
+- `Invoke-EmployeeOffboarding` and `Set-BulkUserOnboarding` generate passwords with `Get-Random`, which is not a cryptographic random generator.
+- `Send-PasswordExpiryNotification` and `Set-BulkUserOnboarding` send mail with `Send-MailMessage`, which Microsoft documents as obsolete.
+- `Get-EntraGuestReport` sorts its report by the risk label alphabetically, not by severity.
 
 ---
 
 ## Author
 
-**Evgeny Blekhman**
-Microsoft 365 & Azure Administrator | 8 years enterprise IT | 2,000+ users, 1,000 servers
-[LinkedIn](https://www.linkedin.com/in/evgeny-blekhman) · [GitHub](https://github.com/evgenybl)
+**Evgeny Blekhman** · [LinkedIn](https://www.linkedin.com/in/evgeny-blekhman/) · [GitHub](https://github.com/evgenybl)
