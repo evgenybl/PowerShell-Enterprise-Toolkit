@@ -1,0 +1,13 @@
+{
+  "_comment": "A clean policy plus a report-only policy that blocks legacy clients: the report-only policy must not suppress the tenant-level legacy-auth finding.",
+  "ConditionalAccessPolicies": [
+    { "Id": "ca-clean", "DisplayName": "Clean: MFA for all users", "State": "enabled",
+      "GrantControls": { "BuiltInControls": [ "mfa" ], "CustomAuthenticationFactors": [], "TermsOfUse": [] },
+      "Conditions": { "Users": { "IncludeUsers": [ "All" ], "ExcludeUsers": [ "breakglass-1" ], "IncludeGroups": [], "ExcludeGroups": [], "IncludeRoles": [], "ExcludeRoles": [], "IncludeGuestsOrExternalUsers": null },
+                      "Applications": { "IncludeApplications": [ "Office365" ], "ExcludeApplications": [] }, "ClientAppTypes": [ "all" ], "SignInRiskLevels": [] } },
+    { "Id": "ca-legacy-report-only", "DisplayName": "Block legacy authentication (report-only)", "State": "enabledForReportingButNotEnforced",
+      "GrantControls": { "BuiltInControls": [ "block" ], "CustomAuthenticationFactors": [], "TermsOfUse": [] },
+      "Conditions": { "Users": { "IncludeUsers": [ "All" ], "ExcludeUsers": [ "breakglass-1" ], "IncludeGroups": [], "ExcludeGroups": [], "IncludeRoles": [], "ExcludeRoles": [], "IncludeGuestsOrExternalUsers": null },
+                      "Applications": { "IncludeApplications": [ "Office365" ], "ExcludeApplications": [] }, "ClientAppTypes": [ "exchangeActiveSync", "other" ], "SignInRiskLevels": [] } }
+  ]
+}

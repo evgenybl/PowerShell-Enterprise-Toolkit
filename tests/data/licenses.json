@@ -1,0 +1,17 @@
+{
+  "_comment": "Synthetic data for Get-M365LicenseReport tests. Invented users and SKU ids in an invented tenant. '@daysAgo:N' becomes a date N days before the test run.",
+  "SubscribedSkus": [
+    { "SkuPartNumber": "SPE_E3", "SkuId": "11111111-1111-1111-1111-111111111111", "PrepaidUnits": { "Enabled": 10 }, "ConsumedUnits": 8 },
+    { "SkuPartNumber": "ENTERPRISEPACK", "SkuId": "22222222-2222-2222-2222-222222222222", "PrepaidUnits": { "Enabled": 20 }, "ConsumedUnits": 5 },
+    { "SkuPartNumber": "VISIOCLIENT", "SkuId": "33333333-3333-3333-3333-333333333333", "PrepaidUnits": { "Enabled": 5 }, "ConsumedUnits": 0 }
+  ],
+  "MgUsers": [
+    { "Id": "lic-1", "DisplayName": "Jamie Active", "UserPrincipalName": "jamie.active@contoso.com", "AccountEnabled": true, "Department": "Sales", "JobTitle": "Rep", "SignInActivity": { "LastSignInDateTime": "@daysAgo:10" }, "AssignedLicenses": [ { "SkuId": "11111111-1111-1111-1111-111111111111" } ] },
+    { "Id": "lic-2", "DisplayName": "Kai Dormant", "UserPrincipalName": "kai.dormant@contoso.com", "AccountEnabled": true, "Department": "Sales", "JobTitle": "Rep", "SignInActivity": { "LastSignInDateTime": "@daysAgo:120" }, "AssignedLicenses": [ { "SkuId": "11111111-1111-1111-1111-111111111111" }, { "SkuId": "22222222-2222-2222-2222-222222222222" } ] },
+    { "Id": "lic-3", "DisplayName": "Lee Never", "UserPrincipalName": "lee.never@contoso.com", "AccountEnabled": true, "Department": "IT", "JobTitle": "Engineer", "SignInActivity": null, "AssignedLicenses": [ { "SkuId": "22222222-2222-2222-2222-222222222222" } ] },
+    { "Id": "lic-4", "DisplayName": "Morgan Unlicensed", "UserPrincipalName": "morgan.unlicensed@contoso.com", "AccountEnabled": true, "Department": "IT", "JobTitle": "Engineer", "SignInActivity": { "LastSignInDateTime": "@daysAgo:1" }, "AssignedLicenses": [] },
+    { "Id": "lic-5", "DisplayName": "Noor Unknownsku", "UserPrincipalName": "noor.unknownsku@contoso.com", "AccountEnabled": true, "Department": "HR", "JobTitle": "Partner", "SignInActivity": { "LastSignInDateTime": "@daysAgo:89" }, "AssignedLicenses": [ { "SkuId": "99999999-9999-9999-9999-999999999999" } ] },
+    { "Id": "lic-6", "DisplayName": "Oak Dormant", "UserPrincipalName": "oak.dormant@contoso.com", "AccountEnabled": false, "Department": "HR", "JobTitle": "Advisor", "SignInActivity": { "LastSignInDateTime": "@daysAgo:91" }, "AssignedLicenses": [ { "SkuId": "22222222-2222-2222-2222-222222222222" } ] },
+    { "Id": "lic-7", "DisplayName": "Pat Edge", "UserPrincipalName": "pat.edge@contoso.com", "AccountEnabled": true, "Department": "Design", "JobTitle": "Designer", "SignInActivity": { "LastSignInDateTime": "@daysAgo:89" }, "AssignedLicenses": [ { "SkuId": "33333333-3333-3333-3333-333333333333" } ] }
+  ]
+}

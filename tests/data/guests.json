@@ -1,0 +1,26 @@
+{
+  "_comment": "Synthetic data for Get-EntraGuestReport tests. Invented guests from example.com in an invented tenant. '@daysAgo:N' becomes a date N days before the test run.",
+  "MgUsers": [
+    { "Id": "guest-a", "UserType": "Guest", "DisplayName": "Avery Partner", "UserPrincipalName": "avery.partner_example.com#EXT#@contoso.com", "Mail": "avery.partner@example.com", "CreatedDateTime": "@daysAgo:400", "SignInActivity": { "LastSignInDateTime": "@daysAgo:10" }, "ExternalUserState": "Accepted", "Department": null, "CompanyName": "Example Partner Ltd" },
+    { "Id": "guest-b", "UserType": "Guest", "DisplayName": "Blake Vendor", "UserPrincipalName": "blake.vendor_example.com#EXT#@contoso.com", "Mail": "blake.vendor@example.com", "CreatedDateTime": "@daysAgo:300", "SignInActivity": { "LastSignInDateTime": null }, "ExternalUserState": "PendingAcceptance", "Department": null, "CompanyName": "Example Vendor Ltd" },
+    { "Id": "guest-c", "UserType": "Guest", "DisplayName": "Casey Contractor", "UserPrincipalName": "casey.contractor_example.com#EXT#@contoso.com", "Mail": "casey.contractor@example.com", "CreatedDateTime": "@daysAgo:250", "SignInActivity": { "LastSignInDateTime": "@daysAgo:200" }, "ExternalUserState": "PendingAcceptance", "Department": null, "CompanyName": null },
+    { "Id": "guest-d", "UserType": "Guest", "DisplayName": "Dana Auditor", "UserPrincipalName": "dana.auditor_example.com#EXT#@contoso.com", "Mail": "dana.auditor@example.com", "CreatedDateTime": "@daysAgo:500", "SignInActivity": { "LastSignInDateTime": "@daysAgo:120" }, "ExternalUserState": "Accepted", "Department": "Audit", "CompanyName": null },
+    { "Id": "guest-e", "UserType": "Guest", "DisplayName": "Eli Consultant", "UserPrincipalName": "eli.consultant_example.com#EXT#@contoso.com", "Mail": "eli.consultant@example.com", "CreatedDateTime": "@daysAgo:30", "SignInActivity": { "LastSignInDateTime": "@daysAgo:5" }, "ExternalUserState": "Accepted", "Department": null, "CompanyName": null },
+    { "Id": "guest-f", "UserType": "Guest", "DisplayName": "Finley Supplier", "UserPrincipalName": "finley.supplier_example.com#EXT#@contoso.com", "Mail": "finley.supplier@example.com", "CreatedDateTime": "@daysAgo:700", "SignInActivity": { "LastSignInDateTime": "@daysAgo:300" }, "ExternalUserState": "Accepted", "Department": null, "CompanyName": null },
+    { "Id": "guest-g", "UserType": "Guest", "DisplayName": "Gina Reviewer", "UserPrincipalName": "gina.reviewer_example.com#EXT#@contoso.com", "Mail": "gina.reviewer@example.com", "CreatedDateTime": "@daysAgo:60", "SignInActivity": null, "ExternalUserState": "Accepted", "Department": null, "CompanyName": null },
+    { "Id": "guest-h", "UserType": "Guest", "DisplayName": "Hugo Reviewer", "UserPrincipalName": "hugo.reviewer_example.com#EXT#@contoso.com", "Mail": "hugo.reviewer@example.com", "CreatedDateTime": "@daysAgo:60", "SignInActivity": { "LastSignInDateTime": null }, "ExternalUserState": "Accepted", "Department": null, "CompanyName": null },
+    { "Id": "guest-i", "UserType": "Guest", "DisplayName": "Ivy Analyst", "UserPrincipalName": "ivy.analyst_example.com#EXT#@contoso.com", "Mail": "ivy.analyst@example.com", "CreatedDateTime": "@daysAgo:200", "SignInActivity": { "LastSignInDateTime": "@daysAgo:89" }, "ExternalUserState": "Accepted", "Department": null, "CompanyName": null },
+    { "Id": "guest-j", "UserType": "Guest", "DisplayName": "Jules Analyst", "UserPrincipalName": "jules.analyst_example.com#EXT#@contoso.com", "Mail": "jules.analyst@example.com", "CreatedDateTime": "@daysAgo:200", "SignInActivity": { "LastSignInDateTime": "@daysAgo:91" }, "ExternalUserState": "Accepted", "Department": null, "CompanyName": null },
+    { "Id": "member-1", "UserType": "Member", "DisplayName": "Morgan Member", "UserPrincipalName": "morgan.member@contoso.com", "Mail": "morgan.member@contoso.com", "CreatedDateTime": "@daysAgo:900", "SignInActivity": { "LastSignInDateTime": "@daysAgo:400" }, "ExternalUserState": null, "Department": "IT", "CompanyName": null }
+  ],
+  "MgMemberOf": {
+    "guest-a": [ { "Id": "group-01" } ],
+    "guest-b": [ { "Id": "group-01" }, { "Id": "group-02" }, { "Id": "group-03" }, { "Id": "group-04" }, { "Id": "group-05" }, { "Id": "group-06" } ],
+    "guest-d": [ { "Id": "group-07" } ],
+    "guest-e": [ { "Id": "group-01" }, { "Id": "group-02" }, { "Id": "group-03" }, { "Id": "group-04" }, { "Id": "group-05" } ]
+  },
+  "RoleAssignments": [
+    { "Id": "assignment-1", "PrincipalId": "guest-a", "RoleDefinitionId": "role-definition-1" },
+    { "Id": "assignment-2", "PrincipalId": "member-1", "RoleDefinitionId": "role-definition-1" }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "_comment": "Synthetic data for Invoke-EmployeeOffboarding tests. Invented people and groups at contoso.com.",
+  "ADUsers": [
+    { "SamAccountName": "jordan.leaving", "UserPrincipalName": "jordan.leaving@contoso.com", "DisplayName": "Jordan Leaving", "DistinguishedName": "CN=Jordan Leaving,OU=Staff,DC=contoso,DC=com", "Manager": "CN=Mia Garcia,OU=Staff,DC=contoso,DC=com", "MemberOf": [ "CN=Finance-Team,OU=Groups,DC=contoso,DC=com", "CN=VPN-Users,OU=Groups,DC=contoso,DC=com" ] },
+    { "SamAccountName": "mia.garcia", "UserPrincipalName": "mia.garcia@contoso.com", "DisplayName": "Mia Garcia", "DistinguishedName": "CN=Mia Garcia,OU=Staff,DC=contoso,DC=com", "Manager": null, "MemberOf": [] }
+  ],
+  "ADPrincipalGroups": {
+    "jordan.leaving": [
+      { "Name": "Domain Users", "SamAccountName": "Domain Users", "DistinguishedName": "CN=Domain Users,CN=Users,DC=contoso,DC=com" },
+      { "Name": "Finance-Team", "SamAccountName": "Finance-Team", "DistinguishedName": "CN=Finance-Team,OU=Groups,DC=contoso,DC=com" },
+      { "Name": "VPN-Users", "SamAccountName": "VPN-Users", "DistinguishedName": "CN=VPN-Users,OU=Groups,DC=contoso,DC=com" }
+    ]
+  },
+  "MgUsers": [
+    { "Id": "user-jordan", "UserPrincipalName": "jordan.leaving@contoso.com", "AssignedLicenses": [ { "SkuId": "22222222-2222-2222-2222-222222222222" } ] }
+  ]
+}

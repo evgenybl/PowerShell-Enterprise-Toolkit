@@ -1,0 +1,12 @@
+{
+  "_comment": "Synthetic data for Set-BulkUserOnboarding tests. Invented people at contoso.com; invented SKU ids.",
+  "ADDomain": { "DNSRoot": "contoso.com" },
+  "ADUsers": [
+    { "SamAccountName": "iivanov", "UserPrincipalName": "iivanov@contoso.com", "DisplayName": "Ilya Ivanov", "DistinguishedName": "CN=Ilya Ivanov,OU=IT,DC=contoso,DC=com" },
+    { "SamAccountName": "mia.garcia", "UserPrincipalName": "mia.garcia@contoso.com", "DisplayName": "Mia Garcia", "DistinguishedName": "CN=Mia Garcia,OU=Staff,DC=contoso,DC=com" }
+  ],
+  "SubscribedSkus": [
+    { "SkuPartNumber": "SPE_E3", "SkuId": "11111111-1111-1111-1111-111111111111", "PrepaidUnits": { "Enabled": 10 }, "ConsumedUnits": 8 },
+    { "SkuPartNumber": "ENTERPRISEPACK", "SkuId": "22222222-2222-2222-2222-222222222222", "PrepaidUnits": { "Enabled": 20 }, "ConsumedUnits": 5 }
+  ]
+}

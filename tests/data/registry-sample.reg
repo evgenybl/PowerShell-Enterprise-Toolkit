@@ -1,0 +1,22 @@
+Windows Registry Editor Version 5.00
+
+; Synthetic test input for Convert-RegistryToGPO. Not a real configuration.
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Contoso\Toolkit]
+@="C:\\Program Files\\Contoso"
+"StringValue"="Hello \"quoted\" world"
+"DwordValue"=dword:0000002a
+"QwordValue"=hex(b):88,77,66,55,44,33,22,11
+"BinaryValue"=hex:de,ad,be,ef
+"MultiValue"=hex(7):41,00,6c,00,70,00,68,00,61,00,00,00,42,00,65,00,74,00,61,00,00,\
+  00,00,00
+"ExpandValue"=hex(2):25,00,53,00,79,00,73,00,74,00,65,00,6d,00,52,00,6f,00,6f,00,\
+  74,00,25,00,5c,00,4c,00,6f,00,67,00,73,00,00,00
+"DeletedValue"=-
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Contoso\Toolkit\Sub]
+"LongBinary"=hex:00,01,02,03,04,05,06,07,08,09,0a,0b,0c,0d,0e,0f,10,11,12,13,14,\
+  15,16,17
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Contoso\Other]
+"Second"="value2"

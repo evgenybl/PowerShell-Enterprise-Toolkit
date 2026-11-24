@@ -1,0 +1,22 @@
+{
+  "_comment": "Synthetic data for Find-StaleAccounts tests. Invented people at contoso.com. '@daysAgo:N' becomes a date N days before the test run.",
+  "ADUsers": [
+    { "SamAccountName": "avery.stale", "UserPrincipalName": "avery.stale@contoso.com", "DisplayName": "Avery Stale", "EmailAddress": "avery.stale@contoso.com", "EmployeeID": "E2001", "Enabled": true, "LastLogonDate": "@daysAgo:61", "Department": "Finance", "DistinguishedName": "CN=Avery Stale,OU=Staff,DC=contoso,DC=com" },
+    { "SamAccountName": "blake.mailactive", "UserPrincipalName": "blake.mailactive@contoso.com", "DisplayName": "Blake Mailactive", "EmailAddress": "blake.mailactive@contoso.com", "EmployeeID": "E2002", "Enabled": true, "LastLogonDate": "@daysAgo:61", "Department": "Sales", "DistinguishedName": "CN=Blake Mailactive,OU=Staff,DC=contoso,DC=com" },
+    { "SamAccountName": "casey.recent", "UserPrincipalName": "casey.recent@contoso.com", "DisplayName": "Casey Recent", "EmailAddress": "casey.recent@contoso.com", "EmployeeID": "E2003", "Enabled": true, "LastLogonDate": "@daysAgo:59", "Department": "Sales", "DistinguishedName": "CN=Casey Recent,OU=Staff,DC=contoso,DC=com" },
+    { "SamAccountName": "dana.nomailbox", "UserPrincipalName": "dana.nomailbox@contoso.com", "DisplayName": "Dana Nomailbox", "EmailAddress": "dana.nomailbox@contoso.com", "EmployeeID": "E2004", "Enabled": true, "LastLogonDate": "@daysAgo:61", "Department": "IT", "DistinguishedName": "CN=Dana Nomailbox,OU=Staff,DC=contoso,DC=com" },
+    { "SamAccountName": "eli.noexologon", "UserPrincipalName": "eli.noexologon@contoso.com", "DisplayName": "Eli Noexologon", "EmailAddress": "eli.noexologon@contoso.com", "EmployeeID": "E2005", "Enabled": true, "LastLogonDate": "@daysAgo:61", "Department": "IT", "DistinguishedName": "CN=Eli Noexologon,OU=Staff,DC=contoso,DC=com" },
+    { "SamAccountName": "frankie.excluded", "UserPrincipalName": "frankie.excluded@contoso.com", "DisplayName": "Frankie Excluded", "EmailAddress": "frankie.excluded@contoso.com", "EmployeeID": "E2006", "Enabled": true, "LastLogonDate": "@daysAgo:61", "Department": "IT", "DistinguishedName": "CN=Frankie Excluded,OU=Staff,DC=contoso,DC=com" },
+    { "SamAccountName": "gray.disabled", "UserPrincipalName": "gray.disabled@contoso.com", "DisplayName": "Gray Disabled", "EmailAddress": "gray.disabled@contoso.com", "EmployeeID": "E2007", "Enabled": false, "LastLogonDate": "@daysAgo:100", "Department": "HR", "DistinguishedName": "CN=Gray Disabled,OU=Staff,DC=contoso,DC=com" }
+  ],
+  "ADGroupMembers": {
+    "Svc-Exclude": [ { "SamAccountName": "frankie.excluded" } ]
+  },
+  "Mailboxes": [
+    { "UserPrincipalName": "avery.stale@contoso.com", "DisplayName": "Avery Stale", "RecipientTypeDetails": "UserMailbox", "Statistics": { "LastLogonTime": "@daysAgo:61" } },
+    { "UserPrincipalName": "blake.mailactive@contoso.com", "DisplayName": "Blake Mailactive", "RecipientTypeDetails": "UserMailbox", "Statistics": { "LastLogonTime": "@daysAgo:59" } },
+    { "UserPrincipalName": "casey.recent@contoso.com", "DisplayName": "Casey Recent", "RecipientTypeDetails": "UserMailbox", "Statistics": { "LastLogonTime": "@daysAgo:100" } },
+    { "UserPrincipalName": "eli.noexologon@contoso.com", "DisplayName": "Eli Noexologon", "RecipientTypeDetails": "UserMailbox", "Statistics": { "LastLogonTime": null } },
+    { "UserPrincipalName": "frankie.excluded@contoso.com", "DisplayName": "Frankie Excluded", "RecipientTypeDetails": "UserMailbox", "Statistics": { "LastLogonTime": "@daysAgo:90" } }
+  ]
+}

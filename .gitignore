@@ -3,6 +3,8 @@ logs/
 reports/
 *.log
 *.csv
+# Invented test input for tests/Test-Toolkit.ps1, not script output
+!tests/data/*.csv
 
 # Credentials and secrets
 *.pfx

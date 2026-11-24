@@ -1,0 +1,3 @@
+FirstName,LastName,Department,JobTitle,Manager,OU,License,Email,Groups
+Jane,Smith,Finance,Analyst,mia.garcia,"OU=Finance,DC=contoso,DC=com",ENTERPRISEPACK,jane.smith@contoso.com,"Finance_DL;VPN_Access"
+Ivan,Ivanov,IT,Engineer,,"OU=IT,DC=contoso,DC=com",SPE_E3,,

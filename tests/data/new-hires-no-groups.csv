@@ -1,0 +1,2 @@
+FirstName,LastName,Department,JobTitle,Manager,OU,License,Email
+Iris,Ilic,Legal,Counsel,,"OU=Legal,DC=contoso,DC=com",ENTERPRISEPACK,iris.ilic@contoso.com

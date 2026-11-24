@@ -1,0 +1,9 @@
+{
+  "_comment": "One clean Conditional Access policy and nothing else: only the two tenant-level checks may fire.",
+  "ConditionalAccessPolicies": [
+    { "Id": "ca-clean", "DisplayName": "Clean: MFA for all users", "State": "enabled",
+      "GrantControls": { "BuiltInControls": [ "mfa" ], "CustomAuthenticationFactors": [], "TermsOfUse": [] },
+      "Conditions": { "Users": { "IncludeUsers": [ "All" ], "ExcludeUsers": [ "breakglass-1" ], "IncludeGroups": [], "ExcludeGroups": [], "IncludeRoles": [], "ExcludeRoles": [], "IncludeGuestsOrExternalUsers": null },
+                      "Applications": { "IncludeApplications": [ "Office365" ], "ExcludeApplications": [] }, "ClientAppTypes": [ "all" ], "SignInRiskLevels": [] } }
+  ]
+}
