@@ -13,8 +13,8 @@
     review before any changes are made.
 
     Onboarding steps per user:
-      1. Validate input data
-      2. Generate a secure temporary password
+      1. Derive a unique SamAccountName (first initial + last name, then a number if taken)
+      2. Generate a temporary password with a cryptographic random generator
       3. Create the AD user account with all standard attributes
       4. Add the user to the specified security and distribution groups
       5. Trigger Azure AD Connect sync
@@ -83,13 +83,47 @@ function Write-Log {
     Write-Host $entry -ForegroundColor $colour
 }
 
+function Get-SecureRandomIndex {
+    # Returns a uniformly distributed integer in [0, MaxExclusive) from a cryptographic
+    # random number generator. Rejection sampling avoids modulo bias.
+    param (
+        [System.Security.Cryptography.RandomNumberGenerator]$Rng,
+        [ValidateRange(1, 256)][int]$MaxExclusive
+    )
+    $limit  = 256 - (256 % $MaxExclusive)
+    $buffer = New-Object byte[] 1
+    do {
+        $Rng.GetBytes($buffer)
+    } while ($buffer[0] -ge $limit)
+    return [int]($buffer[0] % $MaxExclusive)
+}
+
 function New-TemporaryPassword {
-    $upper   = [char[]]('ABCDEFGHJKLMNPQRSTUVWXYZ') | Get-Random -Count 3
-    $lower   = [char[]]('abcdefghjkmnpqrstuvwxyz')  | Get-Random -Count 3
-    $digits  = [char[]]('23456789')                  | Get-Random -Count 3
-    $special = [char[]]('!@#$%^&*')                  | Get-Random -Count 2
-    $all     = ($upper + $lower + $digits + $special) | Get-Random -Count 11
-    return -join $all
+    # 3 upper-case letters, 3 lower-case letters, 3 digits and 2 special characters,
+    # shuffled: 11 characters. Look-alike characters (I, O, i, l, o, 0, 1) are left out.
+    $sets = @(
+        @{ Chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; Take = 3 },
+        @{ Chars = 'abcdefghjkmnpqrstuvwxyz';  Take = 3 },
+        @{ Chars = '23456789';                 Take = 3 },
+        @{ Chars = '!@#$%^&*';                 Take = 2 }
+    )
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $picked = [System.Collections.Generic.List[char]]::new()
+        foreach ($set in $sets) {
+            for ($i = 0; $i -lt $set.Take; $i++) {
+                $picked.Add($set.Chars[(Get-SecureRandomIndex -Rng $rng -MaxExclusive $set.Chars.Length)])
+            }
+        }
+        # Fisher-Yates shuffle with the same generator
+        for ($i = $picked.Count - 1; $i -gt 0; $i--) {
+            $j = Get-SecureRandomIndex -Rng $rng -MaxExclusive ($i + 1)
+            $swap = $picked[$i]; $picked[$i] = $picked[$j]; $picked[$j] = $swap
+        }
+        return -join $picked
+    } finally {
+        $rng.Dispose()
+    }
 }
 
 function Get-WelcomeEmailBody {
@@ -110,7 +144,7 @@ function Get-WelcomeEmailBody {
 }
 
 if (-not (Test-Path $CsvPath)) { throw "CSV not found: $CsvPath" }
-$employees = Import-Csv -Path $CsvPath
+$employees = @(Import-Csv -Path $CsvPath)
 
 Write-Log "Onboarding session started | $($employees.Count) user(s) | WhatIf=$($WhatIfPreference)"
 
@@ -126,7 +160,7 @@ try {
 
 foreach ($emp in $employees) {
     $displayName    = "$($emp.FirstName) $($emp.LastName)"
-    $samAccount     = ($emp.FirstName.Substring(0,1) + $emp.LastName).ToLower() -replace '[^a-z0-9]', ''
+    $samAccount     = ($emp.FirstName.Substring(0,1) + $emp.LastName).ToLowerInvariant() -replace '[^a-z0-9]', ''
     $upn            = "$samAccount@$domainSuffix"
     $tempPassword   = New-TemporaryPassword
     $securePassword = ConvertTo-SecureString $tempPassword -AsPlainText -Force
@@ -138,7 +172,7 @@ foreach ($emp in $employees) {
     # Step 1 - Ensure unique SAM
     $suffix = 1
     while (Get-ADUser -Filter "SamAccountName -eq '$samAccount'" -ErrorAction SilentlyContinue) {
-        $samAccount = ($emp.FirstName.Substring(0,1) + $emp.LastName + $suffix).ToLower() -replace '[^a-z0-9]', ''
+        $samAccount = ($emp.FirstName.Substring(0,1) + $emp.LastName + $suffix).ToLowerInvariant() -replace '[^a-z0-9]', ''
         $upn        = "$samAccount@$domainSuffix"
         $suffix++
     }
@@ -178,7 +212,7 @@ foreach ($emp in $employees) {
 
     # Step 3 - Add to groups
     $allGroups = $DefaultGroups.Clone()
-    if ($emp.Groups) { $allGroups += $emp.Groups -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ } }
+    if ($emp.PSObject.Properties['Groups'] -and $emp.Groups) { $allGroups += $emp.Groups -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ } }
 
     foreach ($group in $allGroups) {
         try {
@@ -243,7 +277,7 @@ foreach ($emp in $employees) {
 $reportPath = Join-Path $LogPath "OnboardingReport_$timestamp.csv"
 $results | Export-Csv -Path $reportPath -Encoding UTF8 -NoTypeInformation
 
-Write-Log "=== Onboarding complete | Success: $(($results | Where-Object Status -eq 'OK').Count) | Partial: $(($results | Where-Object Status -eq 'PARTIAL').Count) ==="
+Write-Log "=== Onboarding complete | Success: $(@($results | Where-Object Status -eq 'OK').Count) | Partial: $(@($results | Where-Object Status -eq 'PARTIAL').Count) ==="
 Write-Log "Report: $reportPath"
 
 try { Disconnect-MgGraph } catch { }

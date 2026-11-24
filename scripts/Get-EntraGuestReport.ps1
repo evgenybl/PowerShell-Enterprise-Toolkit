@@ -55,9 +55,9 @@ $inactiveThreshold = (Get-Date).AddDays(-$InactiveDays)
 $report = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 Write-Host "Retrieving guest accounts..." -ForegroundColor Cyan
-$guests = Get-MgUser -Filter "userType eq 'Guest'" -All `
+$guests = @(Get-MgUser -Filter "userType eq 'Guest'" -All `
     -Property Id, DisplayName, UserPrincipalName, Mail, CreatedDateTime,
-              SignInActivity, ExternalUserState, Department, CompanyName
+              SignInActivity, ExternalUserState, Department, CompanyName)
 
 Write-Host "Found $($guests.Count) guest accounts. Analysing..." -ForegroundColor Cyan
 
@@ -70,14 +70,14 @@ foreach ($guest in $guests) {
     $counter++
     Write-Progress -Activity "Analysing guest accounts" -Status "$counter of $($guests.Count)" -PercentComplete (($counter / $guests.Count) * 100)
 
-    $lastSignIn    = $guest.SignInActivity.LastSignInDateTime
+    $lastSignIn    = if ($guest.SignInActivity) { $guest.SignInActivity.LastSignInDateTime } else { $null }
     $isInactive    = -not $lastSignIn -or $lastSignIn -lt $inactiveThreshold
     $daysSinceLogin = if ($lastSignIn) { [int]((Get-Date) - $lastSignIn).TotalDays } else { 9999 }
 
     # Group membership count
     $groupCount = 0
     try {
-        $groupCount = (Get-MgUserMemberOf -UserId $guest.Id -All).Count
+        $groupCount = @(Get-MgUserMemberOf -UserId $guest.Id -All).Count
     } catch { }
 
     $isPrivileged      = $guest.Id -in $privilegedUserIds
@@ -116,11 +116,17 @@ Write-Progress -Activity "Analysing guest accounts" -Completed
 
 $exportDir = Split-Path $ExportPath -Parent
 if (-not (Test-Path $exportDir)) { New-Item -Path $exportDir -ItemType Directory -Force | Out-Null }
-$report | Sort-Object RiskLevel, DaysSinceLogin -Descending | Export-Csv -Path $ExportPath -Encoding UTF8 -NoTypeInformation
+# Highest risk first, then the longest time since sign-in, then the UPN so that ties keep a fixed order
+$riskRank = @{ Critical = 4; High = 3; Medium = 2; Low = 1; None = 0 }
+$report |
+    Sort-Object -Property @{ Expression = { $riskRank[$_.RiskLevel] }; Descending = $true },
+                          @{ Expression = 'DaysSinceLogin'; Descending = $true },
+                          @{ Expression = 'UserPrincipalName'; Descending = $false } |
+    Export-Csv -Path $ExportPath -Encoding UTF8 -NoTypeInformation
 
 Write-Host "`n=== Entra Guest Report Summary ===" -ForegroundColor Cyan
 foreach ($level in @('Critical','High','Medium','Low','None')) {
-    $count  = ($report | Where-Object { $_.RiskLevel -eq $level }).Count
+    $count  = @($report | Where-Object { $_.RiskLevel -eq $level }).Count
     $colour = switch ($level) { 'Critical' { 'Red' } 'High' { 'Magenta' } 'Medium' { 'Yellow' } 'Low' { 'Cyan' } default { 'White' } }
     Write-Host "$level : $count guest(s)" -ForegroundColor $colour
 }

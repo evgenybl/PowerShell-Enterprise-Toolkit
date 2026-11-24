@@ -75,7 +75,7 @@ if ($extension -eq '.csv') {
     $employeeIDs = Get-Content -Path $InputFilePath | Where-Object { $_ -match '\S' }
 }
 
-$employeeIDs = $employeeIDs | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+$employeeIDs = @($employeeIDs | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 Write-Host "Loaded $($employeeIDs.Count) EmployeeIDs from: $InputFilePath" -ForegroundColor Cyan
 #endregion
 

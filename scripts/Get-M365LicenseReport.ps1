@@ -89,9 +89,9 @@ $userReport  = [System.Collections.Generic.List[PSCustomObject]]::new()
 $wasteReport = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 foreach ($user in $users) {
-    $lastSignIn  = $user.SignInActivity.LastSignInDateTime
+    $lastSignIn  = if ($user.SignInActivity) { $user.SignInActivity.LastSignInDateTime } else { $null }
     $isInactive  = $lastSignIn -and $lastSignIn -lt $inactiveThreshold
-    $skuNames    = $user.AssignedLicenses | ForEach-Object { $skuMap[$_.SkuId] } | Where-Object { $_ }
+    $skuNames    = @($user.AssignedLicenses | ForEach-Object { $skuMap[$_.SkuId] } | Where-Object { $_ })
     $estimatedCost = ($skuNames | ForEach-Object { if ($LicensePricing[$_]) { $LicensePricing[$_] } else { 0 } } | Measure-Object -Sum).Sum
 
     $entry = [PSCustomObject]@{

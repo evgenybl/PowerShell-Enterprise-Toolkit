@@ -95,14 +95,14 @@ $excludedUsers = $excludedUsers | Select-Object -Unique
 
 #region Query AD
 Write-Host "Querying Active Directory..." -ForegroundColor Cyan
-$adUsers = Get-ADUser -Filter {
+$adUsers = @(Get-ADUser -Filter {
     Enabled         -eq $true   -and
     EmployeeID      -ne '$null' -and
     EmailAddress    -ne '$null' -and
     LastLogonDate   -lt $threshold
 } -Properties SamAccountName, UserPrincipalName, EmailAddress, DisplayName,
               EmployeeID, LastLogonDate, Department, DistinguishedName |
-    Where-Object { $_.SamAccountName -notin $excludedUsers }
+    Where-Object { $_.SamAccountName -notin $excludedUsers })
 
 Write-Host "Found $($adUsers.Count) AD accounts inactive in AD for $DaysInactive+ days." -ForegroundColor Yellow
 #endregion

@@ -3,9 +3,10 @@
     Generates a comprehensive mailbox permission report for Exchange Online.
 
 .DESCRIPTION
-    Get-MailboxPermissionReport exports all non-default, non-inherited mailbox permissions
-    across an Exchange Online tenant. This includes Full Access, Send As, Send on Behalf,
-    and Calendar delegations.
+    Get-MailboxPermissionReport exports all non-default mailbox permissions across an
+    Exchange Online tenant. This includes Full Access, Send As, Send on Behalf, and
+    optionally Calendar delegations. Inherited Full Access entries are left out; Send As
+    entries are reported with their IsInherited value.
 
     Use cases:
       - Offboarding audits to identify who has access to a departing employee's mailbox
@@ -61,7 +62,7 @@ $ErrorActionPreference = 'Continue'
 Connect-ExchangeOnline -ShowBanner:$false
 
 $systemPatterns = @(
-    'NT AUTHORITY\\',
+    'NT AUTHORITY\',
     'S-1-5-',
     'Discovery Management',
     'Organization Management',
@@ -81,11 +82,11 @@ $permissions = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 Write-Host "Retrieving mailboxes (Type: $MailboxType)..." -ForegroundColor Cyan
 
-$mailboxes = if ($MailboxType -eq 'All') {
+$mailboxes = @(if ($MailboxType -eq 'All') {
     Get-EXOMailbox -ResultSize Unlimited -Properties DisplayName, UserPrincipalName, RecipientTypeDetails, PrimarySmtpAddress
 } else {
     Get-EXOMailbox -RecipientTypeDetails $MailboxType -ResultSize Unlimited -Properties DisplayName, UserPrincipalName, RecipientTypeDetails, PrimarySmtpAddress
-}
+})
 
 Write-Host "Found $($mailboxes.Count) mailbox(es). Retrieving permissions..." -ForegroundColor Cyan
 

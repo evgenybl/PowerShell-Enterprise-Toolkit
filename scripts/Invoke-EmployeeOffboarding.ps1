@@ -5,7 +5,7 @@
 .DESCRIPTION
     Invoke-EmployeeOffboarding performs a complete, audited offboarding workflow for a departing
     employee. The script handles all Active Directory cleanup, Azure AD sync, mailbox conversion,
-    license removal, and produces a verification report at the end.
+    license removal, and prints a summary of the step results at the end.
 
     Offboarding steps performed:
       1. Disable the AD account
@@ -18,7 +18,7 @@
       8. Convert the Exchange Online mailbox to a Shared Mailbox
       9. Grant the manager Full Access to the shared mailbox
      10. Remove all Microsoft 365 licenses
-     11. Run a verification report and log all results
+     11. Print a summary of the step results and write a log file
 
 .PARAMETER SamAccountName
     The SAM account name of the user to offboard.
@@ -46,12 +46,14 @@
 .NOTES
     Requirements:
       - ActiveDirectory PowerShell module
-      - MSOnline or Microsoft.Graph module
+      - Microsoft.Graph module
       - ExchangeOnlineManagement module
       - ADSync module (on Azure AD Connect server)
       - Run as Domain Admin or delegated account with sufficient rights
 
-    The script does not delete any data. All actions are reversible by an administrator.
+    The script deletes no account and no mailbox. It does not restore the cleared manager,
+    title and department or the old password; the log records each removed group by name
+    and distinguished name, but not the old attribute values.
 #>
 
 [CmdletBinding(SupportsShouldProcess)]
@@ -102,14 +104,38 @@ function Add-Result {
 #endregion
 
 #region Helpers
+function Get-SecureRandomIndex {
+    # Returns a uniformly distributed integer in [0, MaxExclusive) from a cryptographic
+    # random number generator. Rejection sampling avoids modulo bias.
+    param (
+        [System.Security.Cryptography.RandomNumberGenerator]$Rng,
+        [ValidateRange(1, 256)][int]$MaxExclusive
+    )
+    $limit  = 256 - (256 % $MaxExclusive)
+    $buffer = New-Object byte[] 1
+    do {
+        $Rng.GetBytes($buffer)
+    } while ($buffer[0] -ge $limit)
+    return [int]($buffer[0] % $MaxExclusive)
+}
+
 function New-RandomPassword {
     param ([int]$Length = 40)
     $chars = (33..126) | ForEach-Object { [char]$_ }
-    return -join ($chars | Get-Random -Count $Length)
+    $rng   = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $picked = for ($i = 0; $i -lt $Length; $i++) {
+            $chars[(Get-SecureRandomIndex -Rng $rng -MaxExclusive $chars.Count)]
+        }
+        return -join $picked
+    } finally {
+        $rng.Dispose()
+    }
 }
 
 function Show-Progress {
     param ([int]$Seconds, [string]$Activity)
+    if ($Seconds -le 0) { return }
     for ($i = 0; $i -le $Seconds; $i++) {
         Write-Progress -Activity $Activity -PercentComplete (($i / $Seconds) * 100) -Status "$i of $Seconds seconds"
         Start-Sleep -Seconds 1
@@ -158,11 +184,13 @@ try {
 
 #region Step 2 - Reset password
 try {
-    $newPassword = New-RandomPassword -Length 40
-    $securePassword = ConvertTo-SecureString $newPassword -AsPlainText -Force
-    Set-ADAccountPassword -Identity $SamAccountName -NewPassword $securePassword -Reset
-    Write-Log "Password reset to random 40-character string." 'SUCCESS'
-    Add-Result 'Reset Password' 'OK'
+    if ($PSCmdlet.ShouldProcess($SamAccountName, 'Reset password to a random value')) {
+        $newPassword = New-RandomPassword -Length 40
+        $securePassword = ConvertTo-SecureString $newPassword -AsPlainText -Force
+        Set-ADAccountPassword -Identity $SamAccountName -NewPassword $securePassword -Reset
+        Write-Log "Password reset to random 40-character string." 'SUCCESS'
+        Add-Result 'Reset Password' 'OK'
+    }
 } catch {
     Write-Log "Failed to reset password: $_" 'ERROR'
     Add-Result 'Reset Password' 'FAILED' $_
@@ -171,12 +199,18 @@ try {
 
 #region Step 3 - Remove from all groups
 try {
-    $groups = Get-ADPrincipalGroupMembership -Identity $SamAccountName |
-              Where-Object { $_.Name -ne 'Domain Users' }
+    $groups = @(Get-ADPrincipalGroupMembership -Identity $SamAccountName |
+              Where-Object { $_.Name -ne 'Domain Users' })
     if ($groups) {
-        Remove-ADPrincipalGroupMembership -Identity $SamAccountName -MemberOf $groups -Confirm:$false
-        Write-Log "Removed from $($groups.Count) group(s)." 'SUCCESS'
-        Add-Result 'Remove Groups' 'OK' "$($groups.Count) groups removed"
+        if ($PSCmdlet.ShouldProcess($SamAccountName, "Remove from $($groups.Count) group(s)")) {
+            # Log every group before removing it, so the memberships can be restored from the log
+            foreach ($group in $groups) {
+                Write-Log "Removing from group: $($group.Name) [$($group.DistinguishedName)]"
+            }
+            Remove-ADPrincipalGroupMembership -Identity $SamAccountName -MemberOf $groups -Confirm:$false
+            Write-Log "Removed from $($groups.Count) group(s): $(($groups | ForEach-Object { $_.Name }) -join '; ')" 'SUCCESS'
+            Add-Result 'Remove Groups' 'OK' "$($groups.Count) groups removed"
+        }
     } else {
         Write-Log "User was not a member of any additional groups."
         Add-Result 'Remove Groups' 'OK' 'No additional groups'
@@ -189,9 +223,11 @@ try {
 
 #region Step 4 - Clear attributes
 try {
-    Set-ADUser $SamAccountName -Manager $null -Title '' -Department ''
-    Write-Log "Manager, Title, and Department attributes cleared." 'SUCCESS'
-    Add-Result 'Clear Attributes' 'OK'
+    if ($PSCmdlet.ShouldProcess($SamAccountName, 'Clear manager, title and department')) {
+        Set-ADUser $SamAccountName -Manager $null -Title '' -Department ''
+        Write-Log "Manager, Title, and Department attributes cleared." 'SUCCESS'
+        Add-Result 'Clear Attributes' 'OK'
+    }
 } catch {
     Write-Log "Failed to clear attributes: $_" 'ERROR'
     Add-Result 'Clear Attributes' 'FAILED' $_
@@ -200,9 +236,11 @@ try {
 
 #region Step 5 - Move to Disabled OU
 try {
-    Move-ADObject -Identity $adUser.DistinguishedName -TargetPath $DisabledOU
-    Write-Log "Account moved to: $DisabledOU" 'SUCCESS'
-    Add-Result 'Move to Disabled OU' 'OK'
+    if ($PSCmdlet.ShouldProcess($adUser.DistinguishedName, "Move to $DisabledOU")) {
+        Move-ADObject -Identity $adUser.DistinguishedName -TargetPath $DisabledOU
+        Write-Log "Account moved to: $DisabledOU" 'SUCCESS'
+        Add-Result 'Move to Disabled OU' 'OK'
+    }
 } catch {
     Write-Log "Failed to move account: $_" 'ERROR'
     Add-Result 'Move to Disabled OU' 'FAILED' $_
@@ -211,11 +249,13 @@ try {
 
 #region Step 6 & 7 - Azure AD Sync
 try {
-    Import-Module ADSync -ErrorAction Stop
-    Start-ADSyncSyncCycle -PolicyType Delta
-    Write-Log "Azure AD Connect delta sync triggered."
-    Show-Progress -Seconds $AzureSyncWaitSeconds -Activity "Waiting for Azure AD sync to propagate"
-    Add-Result 'Azure AD Sync' 'OK'
+    if ($PSCmdlet.ShouldProcess('Azure AD Connect', 'Trigger delta sync')) {
+        Import-Module ADSync -ErrorAction Stop
+        Start-ADSyncSyncCycle -PolicyType Delta
+        Write-Log "Azure AD Connect delta sync triggered."
+        Show-Progress -Seconds $AzureSyncWaitSeconds -Activity "Waiting for Azure AD sync to propagate"
+        Add-Result 'Azure AD Sync' 'OK'
+    }
 } catch {
     Write-Log "Azure AD sync failed or ADSync module not available: $_" 'WARNING'
     Add-Result 'Azure AD Sync' 'SKIPPED' 'ADSync module not found or sync failed'
@@ -225,11 +265,13 @@ try {
 #region Step 8 & 9 - Convert mailbox and delegate
 try {
     Connect-ExchangeOnline -ShowBanner:$false
-    Set-Mailbox -Identity $upn -Type Shared
-    Write-Log "Mailbox converted to Shared." 'SUCCESS'
-    Add-Result 'Convert to Shared Mailbox' 'OK'
+    if ($PSCmdlet.ShouldProcess($upn, 'Convert mailbox to Shared')) {
+        Set-Mailbox -Identity $upn -Type Shared
+        Write-Log "Mailbox converted to Shared." 'SUCCESS'
+        Add-Result 'Convert to Shared Mailbox' 'OK'
+    }
 
-    if ($Manager) {
+    if ($Manager -and $PSCmdlet.ShouldProcess($upn, "Grant Full Access to $Manager")) {
         Add-MailboxPermission -Identity $upn -User $Manager -AccessRights FullAccess -AutoMapping $true | Out-Null
         Write-Log "Full Access granted to: $Manager" 'SUCCESS'
         Add-Result 'Delegate Mailbox' 'OK' "Delegated to $Manager"
@@ -246,12 +288,13 @@ try {
 try {
     Connect-MgGraph -Scopes 'User.ReadWrite.All' -NoWelcome
     $mgUser = Get-MgUser -UserId $upn -Property AssignedLicenses
-    $skuIds = $mgUser.AssignedLicenses | Select-Object -ExpandProperty SkuId
+    $skuIds = @($mgUser.AssignedLicenses | Select-Object -ExpandProperty SkuId)
     if ($skuIds) {
-        $removeLicenses = $skuIds | ForEach-Object { @{ SkuId = $_ } }
-        Set-MgUserLicense -UserId $upn -AddLicenses @() -RemoveLicenses $skuIds | Out-Null
-        Write-Log "Removed $($skuIds.Count) license(s)." 'SUCCESS'
-        Add-Result 'Remove Licenses' 'OK' "$($skuIds.Count) license(s) removed"
+        if ($PSCmdlet.ShouldProcess($upn, "Remove $($skuIds.Count) license(s)")) {
+            Set-MgUserLicense -UserId $upn -AddLicenses @() -RemoveLicenses $skuIds | Out-Null
+            Write-Log "Removed $($skuIds.Count) license(s)." 'SUCCESS'
+            Add-Result 'Remove Licenses' 'OK' "$($skuIds.Count) license(s) removed"
+        }
     } else {
         Write-Log "No licenses assigned to user."
         Add-Result 'Remove Licenses' 'OK' 'No licenses found'
@@ -272,9 +315,11 @@ $results | ForEach-Object {
     Write-Log ("[{0}] [{1}] {2}" -f $_.Step, $_.Status, $_.Detail)
 }
 
-$failed = $results | Where-Object { $_.Status -eq 'FAILED' }
+$failed = @($results | Where-Object { $_.Status -eq 'FAILED' })
 if ($failed) {
     Write-Log "$($failed.Count) step(s) failed. Review log: $logFile" 'WARNING'
+} elseif ($WhatIfPreference) {
+    Write-Log "WhatIf run for $SamAccountName. No change was made."
 } else {
     Write-Log "Offboarding completed successfully for $SamAccountName." 'SUCCESS'
 }

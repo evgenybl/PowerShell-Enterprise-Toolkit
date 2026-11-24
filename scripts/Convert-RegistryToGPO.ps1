@@ -3,9 +3,10 @@
     Converts a standard Windows .reg export file into a Group Policy Preferences Registry XML file.
 
 .DESCRIPTION
-    Convert-RegistryToGPO reads a .reg file and generates a settings.xml file in the format
-    required by Group Policy Preferences (GPP) Registry extension. The output XML can be
-    placed directly inside a GPO's Registry.xml path for deployment via Group Policy.
+    Convert-RegistryToGPO reads a .reg file and writes Group Policy Preferences (GPP) style
+    registry XML: a Collection tree with one Registry item per value. Whether Group Policy
+    reads this output unchanged has not been tested; see Known limitations in the README
+    before using it in a GPO.
 
     This eliminates the need to manually recreate registry entries through the GPO editor
     when migrating settings captured with regedit.exe. Supports all standard registry
@@ -35,13 +36,11 @@
     .\Convert-RegistryToGPO.ps1 -RegFilePath "C:\Exports\settings.reg" -XmlOutputPath "C:\GPO\Registry.xml" -Action R
 
 .NOTES
-    Place the output XML at:
-      \\<domain>\SYSVOL\<domain>\Policies\{GUID}\Machine\Preferences\Registry\Registry.xml
-
     Limitations:
       - All keys in a single .reg file must share the same hive root (HKLM or HKCU).
         Mixed hives are not supported by the GPP XML format.
       - Default values (@=) are supported for REG_SZ only.
+      - Deleted values ("name"=-) are skipped, and deleted keys ([-HKEY_...]) are not supported.
 #>
 
 [CmdletBinding()]
@@ -200,7 +199,7 @@ try {
                 ([Microsoft.Win32.RegistryValueKind]::String) {
                     if ($line.StartsWith('@=')) {
                         $valueName = ''
-                        $value     = $line.Substring(3, $line.Length - 4)
+                        $value     = Convert-RegEscapeCodes $line.Substring(3, $line.Length - 4)
                         $isDefault = '1'
                     } else {
                         $idx       = $line.IndexOf('"="')
@@ -254,7 +253,7 @@ try {
                     $valueName = Convert-RegEscapeCodes $line.Substring(1, $idx - 1)
                     $tempHex   = $line.Substring($idx + 9).Replace(',', '').ToUpper()
                     $value     = ''
-                    for ($i = $tempHex.Length - 2; $i -gt 0; $i -= 2) { $value += $tempHex.Substring($i, 2) }
+                    for ($i = $tempHex.Length - 2; $i -ge 0; $i -= 2) { $value += $tempHex.Substring($i, 2) }
 
                     $xml.WriteStartElement('Registry')
                     $xml.WriteAttributeString('clsid', $clsidRegistry)

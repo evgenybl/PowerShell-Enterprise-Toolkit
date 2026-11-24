@@ -123,18 +123,25 @@ $subjectTemplate = "Action Required: Your password expires in {0} day(s)"
 Write-Log "Password Expiry Notification | Thresholds: $($DaysThreshold -join ', ') days"
 
 #region Query AD
-$users = Get-ADUser -Filter {
+$users = @(Get-ADUser -Filter {
     Enabled              -eq $true -and
     PasswordNeverExpires -eq $false
 } -Properties DisplayName, EmailAddress, SamAccountName, 'msDS-UserPasswordExpiryTimeComputed' |
     Where-Object { $_.EmailAddress } |
     Select-Object DisplayName, EmailAddress, SamAccountName,
-        @{ Name = 'ExpiryDate'; Expression = { [datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') } }
+        @{ Name = 'ExpiryDate'; Expression = { [datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') } })
 
 Write-Log "Found $($users.Count) enabled users with expiring passwords."
 #endregion
 
 foreach ($user in $users) {
+    # No expiry date could be computed (for example 0x7FFFFFFFFFFFFFFF, "does not expire").
+    # Skip the user; otherwise the previous user's expiry date would be reused below.
+    if (-not $user.ExpiryDate) {
+        $skipped++
+        continue
+    }
+
     $expiryDate    = $user.ExpiryDate.Date
     $daysRemaining = ($expiryDate - $today).Days
 
