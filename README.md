@@ -1,10 +1,12 @@
 # PowerShell Enterprise Toolkit
 
+[![tests](https://github.com/evgenybl/PowerShell-Enterprise-Toolkit/actions/workflows/tests.yml/badge.svg)](https://github.com/evgenybl/PowerShell-Enterprise-Toolkit/actions/workflows/tests.yml)
+
 PowerShell scripts for Microsoft 365, Active Directory, Entra ID, Exchange Online and Group Policy administration.
 
 Written from my years as a System Administrator in a hybrid Microsoft environment of about 2,000 users and 1,000 servers, in a three-person systems team. Each script addresses an operational task of that kind of environment.
 
-**Status: reference code.** All ten scripts parse without errors. There are no automated tests in this repository, and the scripts have not been run against a live tenant from here. Read a script and try it in a lab before you use it. Four scripts that change something support `-WhatIf`: `Find-StaleAccounts`, `Invoke-EmployeeOffboarding`, `Send-PasswordExpiryNotification` and `Set-BulkUserOnboarding`.
+**Status: reference code.** All ten scripts parse without errors and are checked by the automated tests described under [Tests](#tests), which run every script under stub modules against invented data. No script has been run against a live tenant, domain or mail server from this repository. Read a script and try it in a lab before you use it. Four scripts that change something support `-WhatIf`: `Find-StaleAccounts`, `Invoke-EmployeeOffboarding`, `Send-PasswordExpiryNotification` and `Set-BulkUserOnboarding`.
 
 ---
 
@@ -51,7 +53,7 @@ Run as an account with appropriate administrative rights in AD and/or Microsoft 
 
 ## Usage Pattern
 
-All scripts follow a consistent pattern:
+The scripts that change something follow this pattern:
 
 ```powershell
 # Preview changes without making them
@@ -77,7 +79,7 @@ Automates the complete offboarding workflow across AD and Microsoft 365.
 
 **What it does:**
 1. Disables the AD account
-2. Resets the password to a random 40-character string
+2. Resets the password to a random 40-character string from a cryptographic random number generator
 3. Removes the user from all security and distribution groups
 4. Clears manager, title, and department attributes
 5. Moves the account to the Disabled OU
@@ -86,7 +88,9 @@ Automates the complete offboarding workflow across AD and Microsoft 365.
 8. Converts the Exchange Online mailbox to Shared
 9. Grants the manager Full Access to the shared mailbox
 10. Removes all Microsoft 365 licenses
-11. Runs a verification report and writes a log file
+11. Prints a summary of the step results and writes a log file
+
+With `-WhatIf`, each of these changes is announced and none is made.
 
 ```powershell
 .\Invoke-EmployeeOffboarding.ps1 `
@@ -100,7 +104,7 @@ Automates the complete offboarding workflow across AD and Microsoft 365.
 
 ### Find-StaleAccounts
 
-Identifies inactive accounts by cross-referencing both AD `LastLogonDate` and Exchange Online `LastLogonTime`. Single-source checks produce false positives - a user may not log into Windows but still read email daily. This script catches both.
+Identifies inactive accounts by cross-referencing both AD `LastLogonDate` and Exchange Online `LastLogonTime`. Single-source checks produce false positives - a user may not log into Windows but still read email daily. This script catches both. With `-Remediate`, it asks you to type `CONFIRM`, then disables each reported account and moves it to `-DisabledOU`.
 
 ```powershell
 # Report only
@@ -141,17 +145,12 @@ Bulk-looks up AD users by EmployeeID from an HR export and produces a comprehens
 
 ### Convert-RegistryToGPO
 
-Converts a standard `.reg` file (exported from `regedit.exe`) into a `Registry.xml` file compatible with Group Policy Preferences. Eliminates manual re-entry in the GPO editor.
+Converts a standard `.reg` file (exported from `regedit.exe`) into Group Policy Preferences style registry XML: a `Collection` tree with one `Registry` item per value. Whether Group Policy reads this output unchanged has not been tested; see [Known limitations](#known-limitations) before using it in a GPO. It reads the `.reg` file and writes the XML file; it does not read or change the registry or a GPO.
 
 Supports: `REG_SZ`, `REG_DWORD`, `REG_QWORD`, `REG_BINARY`, `REG_MULTI_SZ`, `REG_EXPAND_SZ`
 
 ```powershell
 .\Convert-RegistryToGPO.ps1 -RegFilePath "C:\Exports\settings.reg" -Action U
-```
-
-Place the output at:
-```
-\\domain\SYSVOL\domain\Policies\{GUID}\Machine\Preferences\Registry\Registry.xml
 ```
 
 ---
@@ -169,14 +168,16 @@ $pricing = @{ 'SPE_E3' = 36; 'ENTERPRISEPACK' = 23 }
 
 ### Invoke-ConditionalAccessAudit
 
-Retrieves all Conditional Access policies, runs 8 checks against each one and one tenant-level check, and produces a severity-rated findings report.
+Retrieves all Conditional Access policies, runs 9 checks against each one and 2 tenant-level checks, and produces a severity-rated findings report.
 
-**Checks include:**
-- Policies in Report-Only mode
-- Policies with no grant controls or no MFA requirement
-- Broad user exclusions
-- Guest access without MFA
-- Missing legacy authentication block policy
+**Checks:**
+- Policies in Report-Only mode, and disabled policies
+- Policies with no grant controls, or with grant controls that require neither MFA nor a compliant device (block policies are not flagged)
+- Policies that exclude all users, or more than 10 individual users
+- All-apps policies that do not target legacy authentication clients (Info)
+- Guest or external users included without MFA (block policies are not flagged)
+- Enabled policies that target all users and exclude no user, group or role, so no emergency-access account is excluded
+- Tenant level: no enabled policy blocks legacy authentication clients; no enabled policy uses a sign-in risk condition (sign-in risk needs Microsoft Entra ID P2)
 
 ```powershell
 .\Invoke-ConditionalAccessAudit.ps1 -ExportPath "C:\Audits\CA_Findings.csv"
@@ -192,7 +193,7 @@ Inventories all Entra ID guest accounts and assigns a risk rating based on inact
 .\Get-EntraGuestReport.ps1 -InactiveDays 90 -GroupMembershipThreshold 5
 ```
 
-**Risk levels:** Critical / High / Medium / Low / None
+**Risk levels:** Critical / High / Medium / Low / None. A guest with any directory role assignment is Critical; otherwise three or more flags give High, two Medium, one Low. The report is sorted by risk level, highest first, then by days since the last sign-in.
 
 ---
 
@@ -218,7 +219,7 @@ Jane,Smith,Finance,Analyst,jdoe,"OU=Finance,DC=contoso,DC=com",ENTERPRISEPACK,ja
 
 ### Get-MailboxPermissionReport
 
-Exports all non-default mailbox delegations across Exchange Online. Covers Full Access, Send As, Send on Behalf, and optionally Calendar folder permissions. Filters out system and inherited permissions.
+Exports all non-default mailbox delegations across Exchange Online. Covers Full Access, Send As, Send on Behalf, and optionally Calendar folder permissions. Filters out system accounts (`-ExcludeSystemAccounts:$false` keeps them) and inherited Full Access entries.
 
 ```powershell
 # All mailboxes
@@ -230,27 +231,54 @@ Exports all non-default mailbox delegations across Exchange Online. Covers Full 
 
 ---
 
+## Tests
+
+`tests/Test-Toolkit.ps1` checks the scripts without a tenant, a domain or a mail server.
+
+- **Static checks:** every script parses; no script calls `Remove-ADUser`, `Remove-Mailbox`, `Remove-MgUser` or `Remove-AzureADUser`; the scripts that declare `SupportsShouldProcess` are exactly the four listed above for `-WhatIf`; every parameter is documented in the comment-based help; `Convert-RegistryToGPO` contains no registry or Group Policy write.
+- **Runs under stubs:** each script runs in its own `pwsh` process with the stub modules in `tests/stubs`, which carry the names of `ActiveDirectory`, `ExchangeOnlineManagement`, `ADSync` and the `Microsoft.Graph` modules the scripts use. The stubs return invented data from `tests/data` (people at contoso.com and example.com, an invented tenant) and record every call; `Send-MailMessage` is replaced by a function that records the call and sends nothing. The tests check the report rows and figures, which accounts are flagged on each side of each threshold, that a `-WhatIf` run makes no state-changing call, which calls a real run would make, and the length and character classes of the generated passwords.
+- **What the stubs cannot show:** how the real modules and services behave, including permissions, throttling, replication and sync delays, and the exact objects they return.
+
+GitHub Actions runs the tests on Windows and on Linux for every push to `main` and every pull request; the badge at the top shows the latest result. No script has been run against a live tenant, domain or mail server from this repository.
+
+### Run the tests
+
+PowerShell 7 is required; nothing needs to be installed.
+
+```powershell
+pwsh -NoProfile -File tests/Test-Toolkit.ps1
+```
+
+It prints one line per check and ends with `RESULT: <passed> passed, <failed> failed`. The changes behind the current tests are listed in [CHANGELOG.md](./CHANGELOG.md).
+
+---
+
 ## Development
 
-The scripts were written with AI-assisted workflows (Claude, GitHub Copilot). There are no automated tests in this repository.
+The scripts were written with AI-assisted workflows (Claude, GitHub Copilot). The tests in `tests/` were written the same way.
 
 ---
 
 ## Notes
 
-- The scripts delete no account and no mailbox. Some steps cannot be undone from the log alone: the offboarding script removes group memberships and clears the manager, title and department, and its log records how many groups were removed, not which. Export those values first if you may need to restore them.
-- Credentials are never hardcoded. Use `-Credential` parameters, `Connect-*` module authentication, or a secrets manager.
+- The scripts delete no account and no mailbox. Some steps cannot be undone from the log alone: the offboarding script clears the manager, title and department, and its log does not record their old values. It does log each removed group by name and distinguished name. Export the attribute values first if you may need to restore them.
+- Credentials are never hardcoded. The scripts have no `-Credential` parameter: the Active Directory cmdlets run as the signed-in user, and Exchange Online and Microsoft Graph sign in through `Connect-ExchangeOnline` and `Connect-MgGraph`.
 
 ## Known limitations
 
-- `Convert-RegistryToGPO`: a `REG_QWORD` value is written with one byte missing (the conversion loop stops before the first byte). Do not use it for QWORD values until this is fixed.
-- `Invoke-ConditionalAccessAudit`: the script's header names three checks that the code does not implement: device compliance for privileged roles, break-glass exclusions, and sign-in risk policies.
-- `Invoke-EmployeeOffboarding` and `Set-BulkUserOnboarding` generate passwords with `Get-Random`, which is not a cryptographic random generator.
 - `Send-PasswordExpiryNotification` and `Set-BulkUserOnboarding` send mail with `Send-MailMessage`, which Microsoft documents as obsolete.
-- `Get-EntraGuestReport` sorts its report by the risk label alphabetically, not by severity.
+- With `-WhatIf`, `Find-StaleAccounts`, `Invoke-EmployeeOffboarding`, `Send-PasswordExpiryNotification` and `Set-BulkUserOnboarding` also skip writing their own CSV and log files, although the console still prints the file path. A `-WhatIf` run still signs in and reads: `Invoke-EmployeeOffboarding` signs in to Exchange Online and Microsoft Graph, `Set-BulkUserOnboarding` signs in to Microsoft Graph, and `Find-StaleAccounts` connects to Exchange Online and, with `-Remediate`, still asks you to type `CONFIRM`.
+- `Convert-RegistryToGPO` writes a tree whose root element is the hive's `Collection`, with no `uid` or `changed` attribute on the items. A `Registry.xml` written by the Group Policy editor has a `RegistrySettings` root element. Whether Group Policy reads this output unchanged as `Registry.xml` has not been tested here; compare it with a `Registry.xml` from one of your own GPOs first. Deleted values (`"name"=-`) are skipped and deleted keys (`[-HKEY_...]`) are not supported.
+- `Invoke-ConditionalAccessAudit` does not check device compliance for privileged roles, because the policy objects do not say which roles are privileged. It reads only the built-in grant controls, custom factors and terms of use, and not session controls or authentication strengths. So a policy whose only grant control is an authentication strength is reported as `No Grant Controls`, a policy with only session controls is reported as `No Grant Controls`, and a guest policy that uses an authentication strength is reported as `Guest Access Without MFA`.
+- `Find-StaleAccounts` selects accounts whose AD `LastLogonDate` is older than the threshold, so an account that has never logged on is not reported.
+- `Invoke-EmployeeOffboarding` keeps the group named `Domain Users` and tries to remove every other group. If the user's primary group has another name (another language, or a changed primary group), the group removal step is logged as failed.
+- `Set-BulkUserOnboarding` continues with groups, license and welcome email for a row whose AD account could not be created, and reports a row as `OK` when only a group membership or the welcome email failed. It does not shorten a `SamAccountName` longer than 20 characters, which Active Directory rejects. It assigns the license 10 seconds after requesting a sync and does not set a usage location, so the license step fails with a warning for a user that has not reached Entra ID yet or has no usage location.
+- `Get-MailboxPermissionReport` reads calendar permissions from `<mailbox>:\Calendar`, so a mailbox whose calendar folder has another name (for example in another language) gives no calendar rows. Errors for a mailbox are written only to the verbose stream.
 
 ---
 
 ## Author
 
 **Evgeny Blekhman** · [LinkedIn](https://www.linkedin.com/in/evgeny-blekhman/) · [GitHub](https://github.com/evgenybl)
+
+AI & Automation Specialist. Practical AI training, workshops, business automation and integrations.
